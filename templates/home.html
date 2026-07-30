@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SkyCast — Home</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<div class="container">
+ 
+    <header>
+        <h1>🌦️ SkyCast</h1>
+        <p class="subtitle">Your personal weather dashboard</p>
+    </header>
+ 
+    <form method="GET" action="{{ url_for('weather_page') }}" class="search-form">
+        <input type="text" name="city" placeholder="Enter a city name..." required>
+        <button type="submit">Search</button>
+    </form>
+ 
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="flash {{ category }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+ 
+    {% if favorites %}
+    <div class="favorites-bar">
+        <span class="favorites-label">⭐ Favorites:</span>
+        {% for fav_city, fav_country in favorites %}
+        <div class="favorite-chip-wrap">
+            <a class="favorite-chip" href="{{ url_for('weather_page', city=fav_city) }}">{{ fav_city }}</a>
+            <form method="POST" action="{{ url_for('favorite_remove') }}" class="chip-remove-form">
+                <input type="hidden" name="city" value="{{ fav_city }}">
+                <button type="submit" class="chip-remove" title="Remove favorite">✕</button>
+            </form>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+ 
+    <div class="history-header">
+        <h3 class="section-title">Recent Searches</h3>
+        {% if history %}
+        <form method="POST" action="{{ url_for('clear_history') }}">
+            <button type="submit" class="clear-btn">🗑️ Clear</button>
+        </form>
+        {% endif %}
+    </div>
+ 
+    <table class="history-table">
+        <tr>
+            <th>City</th><th>Temp</th><th>Humidity</th><th>Wind</th><th>Description</th><th>Time</th>
+        </tr>
+        {% for row in history %}
+        <tr>
+            <td><a class="history-link" href="{{ url_for('weather_page', city=row[0]) }}">{{ row[0] }}</a></td>
+            <td>{{ row[1] }}°C</td>
+            <td>{{ row[2] }}%</td>
+            <td>{{ row[3] }} km/h</td>
+            <td>{{ row[4] }}</td>
+            <td>{{ row[5] }}</td>
+        </tr>
+        {% endfor %}
+        {% if not history %}
+        <tr><td colspan="6" class="empty">No searches yet — try searching a city above!</td></tr>
+        {% endif %}
+    </table>
+ 
+</div>
+</body>
+</html>

@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{ weather.city }} Weather — SkyCast</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body class="theme-{{ weather.category }}">
+<div class="container">
+ 
+    <a href="{{ url_for('home') }}" class="back-link">← Back to Home</a>
+ 
+    <form method="GET" action="{{ url_for('weather_page') }}" class="search-form">
+        <input type="text" name="city" placeholder="Search another city..." required>
+        <button type="submit">Search</button>
+    </form>
+ 
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="flash {{ category }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+ 
+    <div class="weather-card">
+        <div class="weather-main">
+            <div class="weather-icon">{{ weather.icon }}</div>
+            <div class="weather-title">
+                <h2>{{ weather.city }}{% if weather.country %}, {{ weather.country }}{% endif %}</h2>
+                <p class="description">{{ weather.description }}</p>
+            </div>
+            <div class="temp">
+                <span class="temp-value" data-c="{{ weather.temperature }}">{{ weather.temperature }}°C</span>
+                <button type="button" id="unit-toggle-btn" class="unit-btn" onclick="toggleUnit()">Switch to °F</button>
+            </div>
+        </div>
+ 
+        <div class="weather-details">
+            <div class="detail"><span>💧 Humidity</span><strong>{{ weather.humidity }}%</strong></div>
+            <div class="detail"><span>💨 Wind</span><strong>{{ weather.windspeed }} km/h</strong></div>
+        </div>
+ 
+        {% if weather.is_favorite %}
+        <form method="POST" action="{{ url_for('favorite_remove') }}">
+            <input type="hidden" name="city" value="{{ weather.city }}">
+            <input type="hidden" name="redirect_to" value="weather">
+            <button type="submit" class="fav-btn is-fav">★ Remove Favorite</button>
+        </form>
+        {% else %}
+        <form method="POST" action="{{ url_for('favorite_add') }}">
+            <input type="hidden" name="city" value="{{ weather.city }}">
+            <input type="hidden" name="country" value="{{ weather.country }}">
+            <button type="submit" class="fav-btn">☆ Add to Favorites</button>
+        </form>
+        {% endif %}
+    </div>
+ 
+    <h3 class="section-title">5-Day Forecast</h3>
+    <div class="forecast-grid">
+        {% for day in weather.forecast %}
+        <div class="forecast-card">
+            <p class="forecast-date">{{ day.date }}</p>
+            <div class="forecast-icon">{{ day.icon }}</div>
+            <p class="forecast-desc">{{ day.desc }}</p>
+            <p class="forecast-temp">
+                <span class="temp-value" data-c="{{ day.max }}">{{ day.max }}°C</span> /
+                <span class="temp-value" data-c="{{ day.min }}">{{ day.min }}°C</span>
+            </p>
+        </div>
+        {% endfor %}
+    </div>
+ 
+</div>
+ 
+<script>
+let isFahrenheit = false;
+ 
+function toggleUnit() {
+    isFahrenheit = !isFahrenheit;
+    document.querySelectorAll('.temp-value').forEach(function (el) {
+        const celsius = parseFloat(el.dataset.c);
+        if (isFahrenheit) {
+            const f = (celsius * 9 / 5) + 32;
+            el.textContent = f.toFixed(1) + '°F';
+        } else {
+            el.textContent = celsius.toFixed(1) + '°C';
+        }
+    });
+    const btn = document.getElementById('unit-toggle-btn');
+    if (btn) {
+        btn.textContent = isFahrenheit ? 'Switch to °C' : 'Switch to °F';
+    }
+}
+</script>
+ 
+</body>
+</html>
