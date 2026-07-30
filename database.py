@@ -1,6 +1,8 @@
 import sqlite3
+import os
 
-DB_NAME = "weather.db"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DB_NAME = os.path.join(BASE_DIR, "weather.db")
 def init_db():
     conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
