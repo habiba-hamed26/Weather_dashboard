@@ -16,7 +16,8 @@ def init_db():
             humidity REAL,
             windspeed REAL,
             description TEXT,
-            searched_at TEXT DEFAULT CURRENT_TIMESTAMP
+            searched_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(user_id, city)   
         )"""
         )
     # store favorite cities
@@ -37,11 +38,26 @@ def init_db():
 # search history 
 
 def save_search(user_id, city, temperature, humidity, windspeed, description):
+    
     conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
+ 
     c.execute(
-        """INSERT INTO searches (user_id, city, temperature, humidity, windspeed, description) VALUES (?, ?, ?, ?, ?, ?)""", (user_id, city, temperature, humidity, windspeed, description)
-             )
+        """UPDATE searches
+           SET temperature = ?, humidity = ?, windspeed = ?, description = ?,
+               searched_at = CURRENT_TIMESTAMP
+           WHERE user_id = ? AND city = ?""",
+        (temperature, humidity, windspeed, description, user_id, city)
+    )
+ 
+    if c.rowcount == 0:
+        # No existing row for this user and city so insert a new one
+        c.execute(
+            """INSERT INTO searches (user_id, city, temperature, humidity, windspeed, description)
+               VALUES (?, ?, ?, ?, ?, ?)""",
+            (user_id, city, temperature, humidity, windspeed, description)
+        )
+ 
     conn.commit()
     conn.close()
 
