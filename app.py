@@ -1,10 +1,19 @@
-from flask import Flask, render_template, request, redirect, url_for, flash
+import uuid
+from flask import Flask, render_template, request, redirect, url_for, flash, session
 import requests
 from database import ( init_db, save_search, get_history, clear_all_history, add_favorite, remove_favorite, get_favorites, is_favorite )
 
 app = Flask(__name__)
 app.secret_key = "my-weather-app-2026"  
+
 init_db()
+
+@app.before_request
+def ensure_user_id():  # ensures that each user has a unique session ID stored in the session.
+    if "user_id" not in session:
+        session["user_id"] = str(uuid.uuid4())
+    session.permanent = True
+
 
 
 # maps World Meteorological Organization weather codes to descriptions and icons
@@ -125,59 +134,66 @@ def fetch_weather_data(city):
 #home page displays search history and favorite cities. 
 @app.route("/")
 def home():
-    history = get_history()
-    favorites = get_favorites()
+    user_id = session["user_id"] 
+    history = get_history(user_id)
+    favorites = get_favorites(user_id)
     return render_template("home.html", history=history, favorites=favorites)
 
 
 # weather page displays current weather and 5-day forecast for a given city.
 @app.route("/weather")
 def weather_page():
+    user_id = session["user_id"]
     city = request.args.get("city", "").strip()
     if not city:
         flash("Please enter a city name.", "error")
         return redirect(url_for("home"))
-
+ 
     weather = fetch_weather_data(city)
     if weather is None:
         flash(f'City "{city}" not found. Try again.', "error")
         return redirect(url_for("home"))
-
+ 
+    # Every search is automatically logged to THIS user's history only.
     save_search(
+        user_id,
         weather["city"],
         weather["temperature"],
         weather["humidity"],
         weather["windspeed"],
         weather["description"],
     )
-
-    weather["is_favorite"] = is_favorite(weather["city"])
+ 
+    weather["is_favorite"] = is_favorite(user_id, weather["city"])
     return render_template("weather.html", weather=weather)
 
 
 @app.route("/clear-history", methods=["POST"])
 def clear_history():
-    clear_all_history()
+    user_id = session["user_id"]
+    clear_all_history(user_id)
     flash("History cleared.", "success")
     return redirect(url_for("home"))
 
 
 @app.route("/favorite/add", methods=["POST"])
 def favorite_add():
+    user_id = session["user_id"]
     city = request.form.get("city")
     country = request.form.get("country", "")
     if city:
-        add_favorite(city, country)
+        add_favorite(user_id, city, country)
         flash(f'{city} added to favorites!', "success")
     return redirect(url_for("weather_page", city=city))
 
 
 @app.route("/favorite/remove", methods=["POST"])
 def favorite_remove():
+    user_id = session["user_id"]
     city = request.form.get("city")
     redirect_to = request.form.get("redirect_to", "home")
     if city:
-        remove_favorite(city)
+        remove_favorite(user_id, city)
         flash(f'{city} removed from favorites.', "success")
     if redirect_to == "weather":
         return redirect(url_for("weather_page", city=city))
